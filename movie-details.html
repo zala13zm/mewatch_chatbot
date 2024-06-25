@@ -285,6 +285,7 @@
             width: 120px;
         }
 
+
         #bufferIndicator {
             position: absolute;
             top: 50%;
@@ -296,6 +297,7 @@
             border-radius: 4px;
             display: none;
             z-index: 10;
+
         }
 
         #uploadButton:disabled {
@@ -328,8 +330,9 @@
             <p>After experiencing a series of setbacks in her career and personal life, Emma decides to return to her
                 hometown to regroup and find a fresh perspective. As she reconnects with old friends and rekindles
                 relationships with her family, she begins to uncover the importance of appreciating the present moment
-                and the small, everyday joys that life has to offer. Perfect for those seeking a feel-good experience,
+                and the small, everyday joys that life has to offer.Perfect for those seeking a feel-good experience,
                 this film is sure to leave audiences with a smile on their faces and a renewed sense of optimism.
+
             </p>
         </div>
     </div>
@@ -351,13 +354,18 @@
         </div>
     </div>
 
-    <button class="chat-icon" onclick="openChat()">💬</button>
+    <button class="chat-icon" onclick="openChatPopup()">💬</button>
     <div class="chat-popup" id="chatPopup">
         <header>
             Welcome User
-            <button onclick="closeChat()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
+            <button onclick="closeChatPopup()"
+                style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">&times;</button>
         </header>
-        <div class="chat-container"></div>
+        <div class="chat-container" id="popupChatContainer">
+            <div class="gemini-message">
+                <p>Ask me anything or request movie recommendations!</p>
+            </div>
+        </div>
         <div class="chat-input">
             <select id="chatLanguage">
                 <option value="en">English</option>
@@ -371,87 +379,14 @@
     </div>
 
     <script>
+        let chatMode = 'chat';
+
         document.getElementById('chatInputField').addEventListener('keypress', function (event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 sendMessage();
             }
         });
-
-        async function openChat() {
-            var chatPopup = document.getElementById("chatPopup");
-            chatPopup.style.display = "flex";
-
-            try {
-                let response = await fetch('https://34.36.185.195:8000/greetings?language=en');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                let data = await response.json();
-
-                var chatContainer = document.querySelector('.chat-container');
-                var greetingMessage = document.createElement('p');
-                greetingMessage.textContent = data.greet;
-                greetingMessage.classList.add('bot-message');
-                chatContainer.appendChild(greetingMessage);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        }
-
-        function closeChat() {
-            var chatPopup = document.getElementById("chatPopup");
-            chatPopup.style.display = "none";
-        }
-
-        async function sendMessage() {
-            var language = document.getElementById('chatLanguage').value;
-            var inputField = document.querySelector('.chat-input input');
-            var message = inputField.value;
-            if (message.trim() !== "") {
-                var chatContainer = document.querySelector('.chat-container');
-
-                var userMessage = document.createElement('p');
-                userMessage.textContent = message;
-                userMessage.classList.add('user-message');
-                chatContainer.appendChild(userMessage);
-                inputField.value = "";
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-
-                document.getElementById('sendSound').play();
-
-                const body = {
-                    "query": message,
-                    "language": language
-                }
-
-                try {
-                    let response = await fetch('https://34.36.185.195:8000/recommend_using_query', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(body)
-                    })
-
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-
-                    let data = await response.json();
-
-                    var botMessage = document.createElement('p');
-                    botMessage.textContent = data.response;
-                    botMessage.classList.add('bot-message');
-                    chatContainer.appendChild(botMessage);
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-
-                    document.getElementById('receiveSound').play();
-                } catch (error) {
-                    console.error('Error fetching data:', error);
-                }
-            }
-        }
 
         function updateUploadButton() {
             var fileInput = document.getElementById('fileInput');
@@ -463,14 +398,82 @@
             }
         }
 
+        function sendMessage() {
+            var inputField = document.getElementById('chatInputField');
+            var message = inputField.value;
+            var language = document.getElementById('chatLanguage').value;
+            if (message.trim() !== "") {
+                displayUserMessage(message);
+                handleUserMessage(message, language);
+                inputField.value = "";
+            }
+            document.getElementById('sendSound').play();
+        }
+
+        function displayUserMessage(message) {
+            var chatContainer = document.getElementById('popupChatContainer');
+            var userMessage = document.createElement('p');
+            userMessage.className = 'user-message';
+            userMessage.textContent = message;
+            chatContainer.appendChild(userMessage);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function displayChatResponse(response) {
+            if (chatMode === 'chat') {
+                var chatContainer = document.getElementById('popupChatContainer');
+                var chatMessage = document.createElement('p');
+                chatMessage.className = 'chat-message';
+                chatMessage.textContent = response;
+                chatContainer.appendChild(chatMessage);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            document.getElementById('receiveSound').play();
+        }
+
+        function displayRecommendations(recommendations) {
+            if (chatMode === 'recommendation') {
+                var chatContainer = document.getElementById('popupChatContainer');
+                recommendations.forEach(rec => {
+                    var recMessage = document.createElement('p');
+                    recMessage.className = 'chat-message';
+                    recMessage.textContent = rec;
+                    chatContainer.appendChild(recMessage);
+                });
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+
+        function handleUserMessage(message, language) {
+            fetch('http://34.36.185.195:8000/recommend_using_query', {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: message, language: language })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    displayChatResponse(data.response);
+                    displayRecommendations(data.recommendation);
+                })
+                .catch(error => {
+                    console.error('Error fetching recommendations:', error);
+                    displayChatResponse('Error fetching recommendations: ' + error.message);
+                });
+        }
+
+
         function uploadVideo() {
+
             var fileInput = document.getElementById('fileInput');
             var file = fileInput.files[0];
             if (file) {
                 var formData = new FormData();
                 formData.append('file', file);
 
-                fetch('https://34.120.70.34:8000/upload', {
+                fetch('http://34.120.70.34:8000/upload', {
                     method: 'POST',
                     headers: {
                         'accept': 'application/json'
@@ -518,7 +521,7 @@
                 return;
             }
 
-            var apiUrl = "https://34.120.70.34:8000/transcribe_and_translate";
+            var apiUrl = "httpz://34.120.70.34:8000/transcribe_and_translate";
 
             console.log("Starting transcription for:", gcsUrl);
             console.log("Using API URL:", apiUrl);
@@ -575,7 +578,7 @@
         const bufferIndicator = document.getElementById('bufferIndicator');
         const uploadButton = document.getElementById('uploadButton');
         const fileInput = document.getElementById('fileInput');
-
+        console.log(fileInput);
         if (fileInput.files.length === 0) {
             uploadButton.disabled = true; 
             uploadButton.classList.add('disabled'); 
@@ -607,12 +610,14 @@
         videoElement.addEventListener('playing', function () {
             bufferIndicator.style.display = 'none';
         });
-
         videoElement.addEventListener('loadeddata', function () {
             bufferIndicator.style.display = 'none';
             uploadButton.disabled = false;
             uploadButton.classList.remove('disabled');
         });
+
+
+
     </script>
 </body>
 
