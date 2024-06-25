@@ -383,7 +383,7 @@
             chatPopup.style.display = "flex";
 
             try {
-                let response = await fetch('http://34.36.185.195:8000/greetings?language=en');
+                let response = await fetch('https://34.36.185.195:8000/greetings?language=en');
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
@@ -426,7 +426,7 @@
                 }
 
                 try {
-                    let response = await fetch('http://34.36.185.195:8000/recommend_using_query', {
+                    let response = await fetch('https://34.36.185.195:8000/recommend_using_query', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -470,7 +470,7 @@
                 var formData = new FormData();
                 formData.append('file', file);
 
-                fetch('http://34.120.70.34:8000/upload', {
+                fetch('https://34.120.70.34:8000/upload', {
                     method: 'POST',
                     headers: {
                         'accept': 'application/json'
@@ -518,7 +518,7 @@
                 return;
             }
 
-            var apiUrl = "http://34.120.70.34:8000/transcribe_and_translate";
+            var apiUrl = "https://34.120.70.34:8000/transcribe_and_translate";
 
             console.log("Starting transcription for:", gcsUrl);
             console.log("Using API URL:", apiUrl);
